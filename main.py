@@ -5,7 +5,7 @@ import random
 import string
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="Simple Bank App", page_icon="🏦", layout="centered")
+st.set_page_config(page_title="Bank Management System", page_icon="🏦", layout="centered")
 
 DATA_FILE = "data.json"
 
@@ -35,14 +35,14 @@ st.title("🏦 Bank Management System")
 
 menu = st.sidebar.selectbox(
     "Select Operation",
-    [
+    (
         "Create Account",
         "Deposit Money",
         "Withdraw Money",
         "Account Details",
         "Update Details",
         "Delete Account"
-    ]
+    )
 )
 
 # ---------------- CREATE ACCOUNT ----------------
@@ -56,7 +56,7 @@ if menu == "Create Account":
     pin = st.text_input("4 Digit PIN", type="password")
 
     if st.button("Create Account"):
-        if age > 18 and len(pin) == 4:
+        if age > 18 and pin.isdigit() and len(pin) == 4:
             account = {
                 "name": name,
                 "age": age,
@@ -71,7 +71,7 @@ if menu == "Create Account":
             st.success("Account Created Successfully 🎉")
             st.info(f"Your Account Number: {account['accountno.']}")
         else:
-            st.error("Invalid Age or PIN")
+            st.error("Age must be above 18 and PIN must be 4 digits")
 
 # ---------------- DEPOSIT MONEY ----------------
 elif menu == "Deposit Money":
@@ -82,13 +82,13 @@ elif menu == "Deposit Money":
     amount = st.number_input("Amount", min_value=1)
 
     if st.button("Deposit"):
-        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        user = next((u for u in data if u["accountno."] == acc and u["pin"] == int(pin)), None)
         if user:
             user["balance"] += amount
             save_data(data)
-            st.success("Amount Credited 💰")
+            st.success("Amount Credited Successfully 💰")
         else:
-            st.error("User Not Found")
+            st.error("Invalid Account Number or PIN")
 
 # ---------------- WITHDRAW MONEY ----------------
 elif menu == "Withdraw Money":
@@ -99,18 +99,18 @@ elif menu == "Withdraw Money":
     amount = st.number_input("Amount", min_value=1)
 
     if st.button("Withdraw"):
-        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        user = next((u for u in data if u["accountno."] == acc and u["pin"] == int(pin)), None)
         if user:
             if user["balance"] >= amount:
                 user["balance"] -= amount
                 save_data(data)
-                st.success("Amount Debited 💸")
+                st.success("Amount Debited Successfully 💸")
             else:
                 st.error("Insufficient Balance")
         else:
-            st.error("User Not Found")
+            st.error("Invalid Account Number or PIN")
 
-# ---------------- ACCOUNT DETAILS ----------------
+# ---------------- ACCOUNT DETAILS (NO JSON) ----------------
 elif menu == "Account Details":
     st.subheader("View Account Details")
 
@@ -118,11 +118,18 @@ elif menu == "Account Details":
     pin = st.text_input("PIN", type="password")
 
     if st.button("Show Details"):
-        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        user = next((u for u in data if u["accountno."] == acc and u["pin"] == int(pin)), None)
         if user:
-            st.json(user)
+            st.success("Account Found ✅")
+
+            st.write(f"👤 **Name:** {user['name']}")
+            st.write(f"🎂 **Age:** {user['age']}")
+            st.write(f"📞 **Phone:** {user['phoneno.']}")
+            st.write(f"📧 **Email:** {user['email']}")
+            st.write(f"🏦 **Account Number:** {user['accountno.']}")
+            st.write(f"💰 **Balance:** ₹ {user['balance']}")
         else:
-            st.error("User Not Found")
+            st.error("Invalid Account Number or PIN")
 
 # ---------------- UPDATE DETAILS ----------------
 elif menu == "Update Details":
@@ -131,7 +138,7 @@ elif menu == "Update Details":
     acc = st.text_input("Account Number")
     pin = st.text_input("PIN", type="password")
 
-    user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+    user = next((u for u in data if u["accountno."] == acc and u["pin"] == int(pin)), None)
 
     if user:
         name = st.text_input("Name", user["name"])
@@ -157,10 +164,10 @@ elif menu == "Delete Account":
     pin = st.text_input("PIN", type="password")
 
     if st.button("Delete Account"):
-        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        user = next((u for u in data if u["accountno."] == acc and u["pin"] == int(pin)), None)
         if user:
             data.remove(user)
             save_data(data)
-            st.success("Account Deleted ❌")
+            st.success("Account Deleted Successfully ❌")
         else:
-            st.error("User Not Found")
+            st.error("Invalid Account Number or PIN")
