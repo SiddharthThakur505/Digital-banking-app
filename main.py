@@ -1,250 +1,166 @@
-# 1. Create Class  Bank 
-# 2. CRUD operations
-# create -> Create User
-# Read -> Reading user details
-# Update ->Updating user details
-# Delete -> Deleting user details
-
-
+import streamlit as st
 from pathlib import Path
 import json
 import random
 import string
 
-class Bank:
-    database = "data.json"
-    data = []     #yeh data json mai save hoga
+# ---------------- CONFIG ----------------
+st.set_page_config(page_title="Simple Bank App", page_icon="🏦", layout="centered")
 
-    try:
-        if Path(database).exists():
-            print("File Exists..")
-            with open(database) as fs:
-                data = json.loads(fs.read())
+DATA_FILE = "data.json"
+
+# ---------------- HELPER FUNCTIONS ----------------
+def load_data():
+    if Path(DATA_FILE).exists():
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def generate_account():
+    digits = random.choices(string.digits, k=4)
+    letters = random.choices(string.ascii_letters, k=4)
+    acc = digits + letters
+    random.shuffle(acc)
+    return "".join(acc)
+
+# ---------------- LOAD DATA ----------------
+data = load_data()
+
+# ---------------- UI ----------------
+st.title("🏦 Bank Management System")
+
+menu = st.sidebar.selectbox(
+    "Select Operation",
+    [
+        "Create Account",
+        "Deposit Money",
+        "Withdraw Money",
+        "Account Details",
+        "Update Details",
+        "Delete Account"
+    ]
+)
+
+# ---------------- CREATE ACCOUNT ----------------
+if menu == "Create Account":
+    st.subheader("Create New Account")
+
+    name = st.text_input("Name")
+    age = st.number_input("Age", min_value=1)
+    phone = st.text_input("Phone Number")
+    email = st.text_input("Email")
+    pin = st.text_input("4 Digit PIN", type="password")
+
+    if st.button("Create Account"):
+        if age > 18 and len(pin) == 4:
+            account = {
+                "name": name,
+                "age": age,
+                "phoneno.": phone,
+                "email": email,
+                "pin": int(pin),
+                "accountno.": generate_account(),
+                "balance": 0
+            }
+            data.append(account)
+            save_data(data)
+            st.success("Account Created Successfully 🎉")
+            st.info(f"Your Account Number: {account['accountno.']}")
         else:
-            print("No such file exists...")
-    except Exception as err:
-        print("Error Occured")
+            st.error("Invalid Age or PIN")
 
-    @classmethod
-    def __update(cls):
-        with open(Bank.database,'w') as fs:
-            fs.write(json.dumps(cls.data))
-    
-    @staticmethod
-    def __generateAcc():  # to find the random account number 
-        digits = random.choices(string.digits,k=4)
-        alpha = random.choices(string.ascii_letters,k=4)
-        id = digits + alpha
-        random.shuffle(id)
-        return "".join(id)
+# ---------------- DEPOSIT MONEY ----------------
+elif menu == "Deposit Money":
+    st.subheader("Deposit Money")
 
-    # Create user
-    def CreateAccount(self):
-        info ={
-            'name' : input('Enter your name:'),
-            'age' : int(input("Enter your age:")),
-            'phoneno.' : int(input("Enter your phone number:" )),
-            'email' : input("Enter your email:"),
-            'pin' :int(input("Enter your pin:")),
-            'accountno.' : Bank.__generateAcc(),
-            'balance' : 0  
-        }
-        if info['age'] > 18 and len(str(info['pin'])) == 4:
-            Bank.data.append(info)
-            Bank.__update()
-            print('Data added in list')
-            print(Bank.data)
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+    amount = st.number_input("Amount", min_value=1)
+
+    if st.button("Deposit"):
+        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        if user:
+            user["balance"] += amount
+            save_data(data)
+            st.success("Amount Credited 💰")
         else:
-            print("Credintials are not valid!")
+            st.error("User Not Found")
 
-    def depositmoney(self):
-        accountno = input("Enter your accountno:")
-        pin = int(input("Enter your 4 digit pin:"))
+# ---------------- WITHDRAW MONEY ----------------
+elif menu == "Withdraw Money":
+    st.subheader("Withdraw Money")
 
-        user_data = [i for i in Bank.data if i ['accountno.'] ==accountno and i['pin']==pin]
-        if user_data == False:
-            print("User not found")
-        else:
-            amount = int(input("paise :"))
-            if amount <= 0:
-                print("Invalid Amount")
-            elif amount > 10000:
-                print("Grater than 10000")
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+    amount = st.number_input("Amount", min_value=1)
+
+    if st.button("Withdraw"):
+        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        if user:
+            if user["balance"] >= amount:
+                user["balance"] -= amount
+                save_data(data)
+                st.success("Amount Debited 💸")
             else:
-                user_data[0]['balance'] += amount
-                Bank.__update()
-                print('Amount Credited')
-
-
-    def Withdrawmoney(self):
-        accountno = input("Enter your accountno:")
-        pin = int(input("Enter your 4 digit pin:"))
-
-        user_data = [i for i in Bank.data if i ['accountno.'] ==accountno and i['pin']==pin]
-        if user_data == False:
-            print("User not found")
+                st.error("Insufficient Balance")
         else:
-            amount = int(input("paise :"))
-            if amount <= 0:
-                print("Invalid Amount")
-            elif amount > 10000:
-                print("Grater than 10000")
-            else:
-                if user_data[0]['balance'] < amount:
-                    print("Insufficient Balance")
-                else:
-                    user_data[0]['balance'] -= amount    
-                    Bank.__update()
-                    print('Amount debited')
-    
-    def Details(self):
-        accountno = input("Enter your accountno:")
-        pin = int(input("Enter your 4 digit pin:"))
+            st.error("User Not Found")
 
-        user_data = [i for i in Bank.data if i ['accountno.'] ==accountno and i['pin']==pin]
-        if user_data == False:
-            print("User not found")
+# ---------------- ACCOUNT DETAILS ----------------
+elif menu == "Account Details":
+    st.subheader("View Account Details")
+
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+
+    if st.button("Show Details"):
+        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        if user:
+            st.json(user)
         else:
-            for i in user_data[0]:
-                print(i,user_data[0][i])
+            st.error("User Not Found")
 
-            
+# ---------------- UPDATE DETAILS ----------------
+elif menu == "Update Details":
+    st.subheader("Update Account Details")
 
-    def update_details(self):
-        accountno = input("Enter your accountno:")
-        pin = int(input("Enter your 4 digit pin:"))
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
 
-        user_data = [i for i in Bank.data if i ['accountno.'] ==accountno and i['pin']==pin]
-        if user_data == False:
-            print("User not found")
+    user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
 
+    if user:
+        name = st.text_input("Name", user["name"])
+        age = st.number_input("Age", value=user["age"])
+        phone = st.text_input("Phone", user["phoneno."])
+        email = st.text_input("Email", user["email"])
+
+        if st.button("Update"):
+            user["name"] = name
+            user["age"] = age
+            user["phoneno."] = phone
+            user["email"] = email
+            save_data(data)
+            st.success("Details Updated Successfully ✨")
+    elif acc:
+        st.error("Invalid Credentials")
+
+# ---------------- DELETE ACCOUNT ----------------
+elif menu == "Delete Account":
+    st.subheader("Delete Account")
+
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+
+    if st.button("Delete Account"):
+        user = next((i for i in data if i["accountno."] == acc and i["pin"] == int(pin)), None)
+        if user:
+            data.remove(user)
+            save_data(data)
+            st.success("Account Deleted ❌")
         else:
-            print("what do you want to update?")
-            print("1. name")
-            print("2. age")
-            print("3. phone number")
-            print("4. email")
-            print("5. pin")
-            print("6. update all details")
-
-            choice = int(input("Enter your choice:"))
-
-            if choice == 1:
-                user_data[0]['name'] = input("Enter your name:")
-                Bank.__update()
-                print("name updated successfully")
-
-            elif choice == 2:
-                user_data[0]['age'] = int(input("Enter your age:"))
-                Bank.__update()
-                print("age updated successfully")
-
-            elif choice == 3:
-                user_data[0]['phoneno.'] = int(input("Enter your phone number:"))
-                Bank.__update()
-                print("phone number updated successfully")
-
-            elif choice == 4:
-                user_data[0]['email'] = input("Enter your email:")
-                Bank.__update()
-                print("email updated successfully")
-
-            elif choice == 5:
-                user_data[0]['pin'] = int(input("Enter your pin:"))
-                Bank.__update()
-                print("pin updated successfully")
-
-            elif choice == 6:
-                print("Leave blank to skip any field")
-
-                name = input("Enter your name:")
-                age = input("Enter your age:")
-                phone = input("Enter your phone number:")
-                email = input("Enter your email:")
-                new_pin = input("Enter your pin:")
-
-                if name:
-                    user_data[0]['name'] = name
-
-                if age.isdigit():
-                    user_data[0]['age'] = int(age)
-
-                if phone.isdigit():
-                    user_data[0]['phoneno.'] = int(phone)
-
-                if email:
-                    user_data[0]['email'] = email
-
-                if new_pin.isdigit() and len(new_pin) == 4:
-                    user_data[0]['pin'] = int(new_pin)
-
-                print("All details updated successfully")
-
-            else:
-                print("Invalid choice")
-
-            Bank._Bank__update()
-            # print()  yaha par ham phir se show karna chahe to kya karenge 
-
-
-                
-    def delete(self):
-        accountno = input("Enter your accountno:")
-        pin = int(input("Enter your 4 digit pin:"))
-
-        user_data = [i for i in Bank.data if i ['accountno.'] ==accountno and i['pin']==pin]
-        if user_data == False:
-            print("User not found")
-        else:
-            print("are you sure you want to delete your account? yes/no")
-            choice = input("Enter your choice:")
-            if choice == "yes":
-                ind=Bank.data.index(user_data[0])
-                Bank.data.pop(ind)
-                Bank.__update()
-                print("account deleted successfully")
-            else:
-                print("operation terminated")
-
-
-while True:
-        obj=Bank()
-        print("press 1 for Create Account")
-        print("press 2 for Deposite Money")
-        print("press 3 for Withdraw Money")
-        print("press 4 for Account Details")
-        print("press 5 for update details")
-        print("press 6 for delete account")
-
-
-        choice = int(input("Enter your choice:"))
-
-        if choice == 1:
-            obj.CreateAccount()
-
-        elif choice == 2:
-            obj.depositmoney()
-
-        elif choice == 3:
-            obj.Withdrawmoney()
-
-        elif choice == 4:
-            obj.Details()
-
-        elif choice == 5:
-            obj.update_details()
-
-        elif choice == 6:
-            obj.delete()
-        
-        else:
-            print("Invalid choice")
-
-
-obj = Bank()
-obj.CreateAccount()
-obj.depositmoney()
-obj.Withdrawmoney()
-obj.Details()
-obj.update_details()
-obj.delete()
+            st.error("User Not Found")
